@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# jlenskit artifacts
+runs/
+*.safetensors
+lens_cache/
+.cache/
+
+# env / secrets
+.env
+
+# OS / editors
+.DS_Store
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/

@@ -1,0 +1,38 @@
+# Demo: fit and apply a J-lens on GPT-2 (CPU-runnable). Downloads GPT-2 (~500MB).
+#   jlenskit fit    configs/gpt2_demo.yaml
+#   jlenskit apply  configs/gpt2_demo.yaml
+#   jlenskit eval   configs/gpt2_demo.yaml
+#   jlenskit viz    configs/gpt2_demo.yaml
+model:
+  id: gpt2
+  dtype: float32
+  device: cpu
+
+corpus:
+  source: builtin      # bundled English corpus; swap for source: hf / file
+  seq_len: 64
+  n_sequences: 64
+  seed: 0
+
+fit:
+  layers: null         # null = all layers
+  chunk_size: 64
+
+lens:
+  use_cache: true
+
+apply:
+  prompts:
+    - "Fact: The currency used in the country shaped like a boot is"
+    - "The opposite of hot is"
+  positions: [-1]
+  top_k: 10
+  viz: true
+  viz_kind: grid
+
+eval:
+  top_k: 5
+
+seed: 0
+output:
+  dir: runs/gpt2_demo

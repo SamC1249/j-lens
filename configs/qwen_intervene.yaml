@@ -1,0 +1,32 @@
+# Demo: a concept-swap intervention on Qwen (single GPU recommended).
+#   jlenskit fit        configs/qwen_intervene.yaml
+#   jlenskit intervene  configs/qwen_intervene.yaml
+model:
+  id: Qwen/Qwen2-0.5B
+  dtype: bfloat16
+
+corpus:
+  source: builtin
+  seq_len: 64
+  n_sequences: 128
+  seed: 0
+
+fit:
+  chunk_size: 128
+
+lens:
+  use_cache: true
+
+intervene:
+  type: swap            # inject | swap
+  prompt: "My favorite sport to watch is"
+  layer: 12
+  position: -1
+  source: " soccer"
+  target: " rugby"
+  strength: 1.5
+  top_k: 8
+
+seed: 0
+output:
+  dir: runs/qwen_intervene
