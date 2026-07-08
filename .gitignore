@@ -22,3 +22,6 @@ lens_cache/
 .ipynb_checkpoints/
 .pytest_cache/
 .ruff_cache/
+
+# stray CLI run logs at repo root
+runs_*.log

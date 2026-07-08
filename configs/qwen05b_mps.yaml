@@ -1,0 +1,39 @@
+# Real run: fit + apply + eval a J-lens on Qwen2-0.5B, Apple Silicon (MPS).
+#   jlenskit fit    configs/qwen05b_mps.yaml
+#   jlenskit apply  configs/qwen05b_mps.yaml
+#   jlenskit eval   configs/qwen05b_mps.yaml
+#   jlenskit viz    configs/qwen05b_mps.yaml
+model:
+  id: Qwen/Qwen2-0.5B
+  dtype: float32        # safest for MPS autograd; model is small (~2GB in fp32)
+  device: mps
+
+corpus:
+  source: builtin
+  seq_len: 64
+  n_sequences: 16      # MPS is_grads_batched backward ~45s/seq; 16 -> ~12 min first run
+  seed: 0
+
+fit:
+  layers: null          # all 24 layers
+  chunk_size: 128       # ceil(896/128) = 7 batched backward passes per sequence
+
+lens:
+  use_cache: true
+
+apply:
+  prompts:
+    - "Fact: The capital of France is"
+    - "The opposite of hot is"
+    - "Water is made of hydrogen and"
+  positions: [-1]
+  top_k: 10
+  viz: true
+  viz_kind: grid
+
+eval:
+  top_k: 5
+
+seed: 0
+output:
+  dir: runs/qwen05b_mps
