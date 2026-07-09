@@ -9,7 +9,7 @@ description = "A reproducible, modular toolkit for running the Jacobian lens (J-
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
-authors = [{ name = "jlenskit contributors" }]
+authors = [{ name = "Sam Chen", email = "chensam178@gmail.com" }]
 keywords = ["interpretability", "jacobian-lens", "mechanistic-interpretability", "transformers", "llm"]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -37,7 +37,9 @@ parity = ["jlens"]  # anthropics/jacobian-lens; used only by tests/parity
 jlenskit = "jlenskit.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/jlenskit/jlenskit"
+Homepage = "https://github.com/SamC1249/j-lens"
+Repository = "https://github.com/SamC1249/j-lens"
+Issues = "https://github.com/SamC1249/j-lens/issues"
 Paper = "https://transformer-circuits.pub/2026/workspace/index.html"
 Reference = "https://github.com/anthropics/jacobian-lens"
 

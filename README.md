@@ -1,5 +1,9 @@
 # jlenskit
 
+[![CI](https://github.com/SamC1249/j-lens/actions/workflows/ci.yml/badge.svg)](https://github.com/SamC1249/j-lens/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SamC1249/j-lens/blob/main/examples/quickstart.ipynb)
+
 **A reproducible, modular toolkit for running the Jacobian lens (J-lens) on open-weights language models.**
 
 The J-lens, from Anthropic's [*"Verbalizable Representations Form a Global Workspace in
@@ -49,7 +53,16 @@ lens = JacobianLens.fit(adapter, batches, chunk_size=64) # estimate J_ℓ for al
 res = lens.apply(adapter, "The capital of France is", positions=[-1], top_k=10)
 for dl in res.decoded[0]:
     print(dl.layer, dl.tokens[:5])                       # watch silent tokens evolve by layer
+
+# Compare against the classic logit lens on the same activation (the J-lens is a
+# principled refinement of it) — same LensResult shape, so viz/metrics just work:
+from jlenskit import logit_lens
+base = logit_lens(adapter, "The capital of France is", positions=[-1], top_k=10)
 ```
+
+New to the tool? **[`examples/quickstart.ipynb`](examples/quickstart.ipynb)** walks through
+fit → apply → logit-lens comparison → visualize, and runs in a few minutes on CPU
+(click the Colab badge above).
 
 ## Quickstart (CLI)
 
@@ -107,9 +120,11 @@ downloads or GPU.
 ## Development
 
 ```bash
-pytest -q          # 36 fast tests, no network
+pytest -q          # 40 fast tests, no network, no GPU
 ruff check .
 ```
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for adding model families and the correctness bar.
 
 ## License
 

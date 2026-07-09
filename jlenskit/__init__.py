@@ -7,6 +7,7 @@ Reference: "Verbalizable Representations Form a Global Workspace in Language Mod
 from __future__ import annotations
 
 from .adapters import Adapter, ModelSpec, autodetect
+from .baselines import logit_lens
 from .core import JacobianLens, LensResult
 from .models import adapter_from, load
 
@@ -20,5 +21,6 @@ __all__ = [
     "autodetect",
     "JacobianLens",
     "LensResult",
+    "logit_lens",
     "__version__",
 ]

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>J-lens grid</title>
+<style>
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+body {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  margin: 0; padding: 24px; background: #fbfcfe; color: #101418;
+}
+header { margin-bottom: 20px; }
+header h1 { font-size: 18px; margin: 0 0 8px; }
+.meta { font-size: 13px; color: #556; }
+.meta code {
+  background: #eef1f7; padding: 2px 6px; border-radius: 4px;
+  white-space: pre-wrap; word-break: break-all;
+}
+table { border-collapse: collapse; font-size: 13px; }
+th, td {
+  border: 1px solid #d7dbe4; padding: 4px 8px; text-align: center;
+  white-space: nowrap;
+}
+th { background: #eef1f7; position: sticky; top: 0; font-weight: 600; }
+.rowhdr { background: #f4f6fa; font-weight: 600; text-align: right; }
+.chip {
+  display: inline-block; margin: 2px; padding: 3px 8px; border-radius: 5px;
+  font-size: 12px; white-space: pre; cursor: default;
+}
+.chip .sc { opacity: 0.75; font-size: 10px; margin-left: 4px; }
+.cell { min-width: 64px; cursor: default; }
+.cell .sc { display: block; font-size: 10px; opacity: 0.8; }
+.legend { margin-top: 16px; font-size: 12px; color: #556; }
+.legend .bar {
+  display: inline-block; width: 180px; height: 12px; vertical-align: middle;
+  border: 1px solid #ccd; border-radius: 3px;
+  background: linear-gradient(to right, rgba(30,90,200,0.08), rgba(30,90,200,1));
+}
+</style>
+</head>
+<body>
+<header>
+<h1>J-lens grid</h1>
+<div class="meta">prompt: <code>Fact:·The·capital·of·France·is</code></div>
+<div class="meta">positions: <code>[6]</code></div>
+</header>
+<table>
+<thead><tr><th>layer \ pos</th><th>pos 0<br><small>(6)</small></th></tr></thead>
+<tbody>
+<tr><td class="rowhdr">L0</td><td class="cell" style="background:rgba(30, 90, 200, 0.171);color:#101418" title=" =
+
+ 0.0985 |  %
+
+ 0.0749 |  ()
+
+ 0.0416 |          0.0414 | 】
+
+ 0.0413 | ___
+
+ 0.0356 | ”
+
+ 0.0343 |         0.0307 | __
+
+ 0.0305 | ）
+
+ 0.0245">·=↵↵<span class="sc">0.099</span></td></tr>
+<tr><td class="rowhdr">L1</td><td class="cell" style="background:rgba(30, 90, 200, 0.677);color:#f7f9ff" title="＿ 0.6491 | ____ 0.0763 | 。（ 0.0449 | ____________ 0.0398 | ,__ 0.0295 | ———————— 0.0194 |  ， 0.0160 | ------- 0.0153 | ----------- 0.0078 | -------- 0.0070">＿<span class="sc">0.649</span></td></tr>
+<tr><td class="rowhdr">L2</td><td class="cell" style="background:rgba(30, 90, 200, 0.244);color:#101418" title="____ 0.1787 | “ 0.1491 | （ 0.1024 |  ____ 0.0956 | ＿ 0.0552 |  ______ 0.0431 | ________ 0.0338 |  （ 0.0331 | ____________ 0.0307 |  ， 0.0216">____<span class="sc">0.179</span></td></tr>
+<tr><td class="rowhdr">L3</td><td class="cell" style="background:rgba(30, 90, 200, 0.113);color:#101418" title=" ， 0.0360 |  neither 0.0185 |  there 0.0173 | ’ 0.0154 |  very 0.0127 |  not 0.0120 | ____ 0.0091 |  because 0.0087 |  too 0.0084 | ‘ 0.0083">·，<span class="sc">0.036</span></td></tr>
+<tr><td class="rowhdr">L4</td><td class="cell" style="background:rgba(30, 90, 200, 0.101);color:#101418" title="people 0.0225 | how 0.0210 | mos 0.0208 | otope 0.0135 | m 0.0108 | par 0.0102 | not 0.0086 | se 0.0081 | possible 0.0080 | mount 0.0075">people<span class="sc">0.022</span></td></tr>
+<tr><td class="rowhdr">L5</td><td class="cell" style="background:rgba(30, 90, 200, 0.105);color:#101418" title=" usually 0.0271 | what 0.0264 | people 0.0193 |  what 0.0164 | how 0.0163 |  very 0.0159 |  because 0.0158 |  therefore 0.0137 |  normally 0.0135 |  why 0.0112">·usually<span class="sc">0.027</span></td></tr>
+<tr><td class="rowhdr">L6</td><td class="cell" style="background:rgba(30, 90, 200, 0.115);color:#101418" title=" therefore 0.0382 |  normally 0.0371 |  because 0.0350 |  people 0.0329 |  usually 0.0232 |  nobody 0.0222 |  why 0.0171 |  very 0.0162 |  worse 0.0130 | 没有人 0.0119">·therefore<span class="sc">0.038</span></td></tr>
+<tr><td class="rowhdr">L7</td><td class="cell" style="background:rgba(30, 90, 200, 0.114);color:#101418" title=" .
+ 0.0372 | .
+ 0.0203 | stanbul 0.0178 |  UNESCO 0.0170 |  nowadays 0.0166 |  Britain 0.0158 |  !
+ 0.0129 |  France 0.0128 | ＂ 0.0118 |  very 0.0115">·.↵<span class="sc">0.037</span></td></tr>
+<tr><td class="rowhdr">L8</td><td class="cell" style="background:rgba(30, 90, 200, 0.267);color:#101418" title=" UNESCO 0.2031 | （ 0.0874 | “ 0.0339 | 国际化 0.0221 | 首都 0.0166 | stanbul 0.0151 |  international 0.0115 |  Britain 0.0114 | 国家 0.0112 |  ， 0.0105">·UNESCO<span class="sc">0.203</span></td></tr>
+<tr><td class="rowhdr">L9</td><td class="cell" style="background:rgba(30, 90, 200, 0.336);color:#101418" title="（ 0.2779 | ____ 0.0510 |  ____ 0.0483 |  （ 0.0150 |  Europ 0.0144 | ＿ 0.0144 |  Britain 0.0139 | .Pe 0.0116 |  ______ 0.0100 |  _____ 0.0096">（<span class="sc">0.278</span></td></tr>
+<tr><td class="rowhdr">L10</td><td class="cell" style="background:rgba(30, 90, 200, 0.376);color:#101418" title="____ 0.3215 |  ______ 0.1765 | （ 0.1377 |  ____ 0.0731 |  _____ 0.0539 |  __ 0.0504 |  __________________ 0.0444 | ＿ 0.0226 | ？
+ 0.0149 | ____________ 0.0145">____<span class="sc">0.322</span></td></tr>
+<tr><td class="rowhdr">L11</td><td class="cell" style="background:rgba(30, 90, 200, 0.122);color:#101418" title=" National 0.0452 |  UNESCO 0.0346 |  national 0.0220 |  Europe 0.0196 |  America 0.0181 |  France 0.0153 |  nation 0.0111 |  europe 0.0103 |  country 0.0099 |  international 0.0099">·National<span class="sc">0.045</span></td></tr>
+<tr><td class="rowhdr">L12</td><td class="cell" style="background:rgba(30, 90, 200, 0.157);color:#101418" title=" National 0.0839 | ？
+ 0.0455 |  UNESCO 0.0350 |  national 0.0285 | ?
+ 0.0263 |  france 0.0247 |  europe 0.0173 | ？
+
+ 0.0130 |  nation 0.0127 |  ?
+ 0.0119">·National<span class="sc">0.084</span></td></tr>
+<tr><td class="rowhdr">L13</td><td class="cell" style="background:rgba(30, 90, 200, 0.446);color:#101418" title=" National 0.3978 |  national 0.0509 |  nation 0.0129 |  Country 0.0126 |  country 0.0116 |  United 0.0102 |  UNESCO 0.0101 |  tourism 0.0083 |  Tourism 0.0082 |  located 0.0080">·National<span class="sc">0.398</span></td></tr>
+<tr><td class="rowhdr">L14</td><td class="cell" style="background:rgba(30, 90, 200, 0.232);color:#101418" title=" National 0.1657 |  Australia 0.0257 |  Country 0.0254 |  national 0.0182 |  Geography 0.0168 |  Location 0.0154 |  located 0.0141 |  Located 0.0137 |  Peninsula 0.0122 |  UNESCO 0.0116">·National<span class="sc">0.166</span></td></tr>
+<tr><td class="rowhdr">L15</td><td class="cell" style="background:rgba(30, 90, 200, 0.134);color:#101418" title=" National 0.0584 |  Located 0.0316 |  Mount 0.0225 |  Metropolitan 0.0218 |  Geography 0.0184 |  Country 0.0171 |  Olympia 0.0158 |  Location 0.0156 |  Independence 0.0110 |  Lake 0.0102">·National<span class="sc">0.058</span></td></tr>
+<tr><td class="rowhdr">L16</td><td class="cell" style="background:rgba(30, 90, 200, 0.186);color:#101418" title=" Located 0.1149 | 坐落 0.0829 | 位于 0.0233 |  Olympia 0.0214 | 首都 0.0173 |  Country 0.0165 |  Mount 0.0163 | 地理位置 0.0158 | 直辖市 0.0148 |  Metropolitan 0.0136">·Located<span class="sc">0.115</span></td></tr>
+<tr><td class="rowhdr">L17</td><td class="cell" style="background:rgba(30, 90, 200, 0.127);color:#101418" title=" Located 0.0513 | 直辖市 0.0286 | 位于 0.0254 |  Kensington 0.0135 |  Metropolitan 0.0128 | 首都 0.0115 |  City 0.0108 | 坐落 0.0106 |  Paris 0.0106 |  Canberra 0.0099">·Located<span class="sc">0.051</span></td></tr>
+<tr><td class="rowhdr">L18</td><td class="cell" style="background:rgba(30, 90, 200, 0.420);color:#101418" title=" Paris 0.3692 | 巴黎 0.2358 |  Marseille 0.1452 |  Bordeaux 0.0812 |  France 0.0685 | 首都 0.0203 |  Brussels 0.0112 |  Belgium 0.0096 |  paris 0.0090 |  Lisbon 0.0069">·Paris<span class="sc">0.369</span></td></tr>
+<tr><td class="rowhdr">L19</td><td class="cell" style="background:rgba(30, 90, 200, 0.481);color:#101418" title=" Paris 0.4360 | 巴黎 0.1656 |  Marseille 0.1340 |  France 0.1188 |  Bordeaux 0.0937 |  paris 0.0077 |  Lyon 0.0074 | 首都 0.0039 |  france 0.0033 |  Brussels 0.0029">·Paris<span class="sc">0.436</span></td></tr>
+<tr><td class="rowhdr">L20</td><td class="cell" style="background:rgba(30, 90, 200, 0.918);color:#f7f9ff" title=" Paris 0.9114 |  France 0.0286 |  Bordeaux 0.0143 | 巴黎 0.0143 |  Marseille 0.0109 |  paris 0.0045 |  Lyon 0.0027 |  London 0.0021 |  Brussels 0.0010 |  Saint 0.0008">·Paris<span class="sc">0.911</span></td></tr>
+<tr><td class="rowhdr">L21</td><td class="cell" style="background:rgba(30, 90, 200, 0.971);color:#f7f9ff" title=" Paris 0.9689 | 巴黎 0.0105 |  London 0.0094 | Paris 0.0017 |  Marseille 0.0015 |  Brussels 0.0014 |  Berlin 0.0010 |  Lyon 0.0007 |  Bordeaux 0.0006 |  paris 0.0006">·Paris<span class="sc">0.969</span></td></tr>
+<tr><td class="rowhdr">L22</td><td class="cell" style="background:rgba(30, 90, 200, 0.988);color:#f7f9ff" title=" Paris 0.9866 | 巴黎 0.0108 | Paris 0.0012 |  paris 0.0006 |  France 0.0006 |  Marseille 0.0000 |  Lyon 0.0000 |  Brussels 0.0000 |  Bordeaux 0.0000 |  French 0.0000">·Paris<span class="sc">0.987</span></td></tr>
+<tr><td class="rowhdr">L23</td><td class="cell" style="background:rgba(30, 90, 200, 0.973);color:#f7f9ff" title=" Paris 0.9707 | 巴黎 0.0069 |  Lyon 0.0055 |  Bordeaux 0.0036 |  Marseille 0.0024 | Paris 0.0022 |  paris 0.0019 |  Vers 0.0016 |  France 0.0015 |  Bour 0.0004">·Paris<span class="sc">0.971</span></td></tr>
+</tbody>
+</table>
+<div class="legend">Color = top-1 probability: <span>low</span> <span class="bar"></span> <span>high</span>. Hover a cell/chip for the full top-k list. Spaces shown as &middot;, newlines as ↵.</div>
+
+</body>
+</html>

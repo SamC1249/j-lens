@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+title: "jlenskit: a reproducible toolkit for the Jacobian lens (J-lens)"
+message: "If you use this software, please cite both the software and the paper it implements."
+type: software
+authors:
+  - given-names: Sam
+    family-names: Chen
+repository-code: "https://github.com/SamC1249/j-lens"
+url: "https://github.com/SamC1249/j-lens"
+abstract: >-
+  jlenskit is a modular, reproducible toolkit for fitting and applying the
+  Jacobian lens (J-lens) to open-weights decoder language models. It estimates
+  the corpus-averaged input->output Jacobian per layer, decodes hidden states
+  into vocabulary space through the model's own final norm and unembedding, and
+  ships structured outputs, an offline HTML viewer, and provenance manifests.
+keywords:
+  - interpretability
+  - mechanistic-interpretability
+  - jacobian-lens
+  - transformers
+  - large-language-models
+license: Apache-2.0
+version: 0.1.0
+references:
+  - type: article
+    title: "Verbalizable Representations Form a Global Workspace in Language Models"
+    authors:
+      - name: "Anthropic"
+    year: 2026
+    url: "https://transformer-circuits.pub/2026/workspace/index.html"
+    notes: "The paper that introduces the Jacobian lens; jlenskit is an independent implementation."
