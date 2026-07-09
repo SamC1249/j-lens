@@ -24,12 +24,15 @@ import torch
 
 from ..adapters.base import Adapter
 from ..core.lens import JacobianLens
+from ..jspace import decompose
 
 __all__ = [
     "topk_accuracy",
     "excess_kurtosis",
     "autocorrelation",
     "effective_dimension",
+    "logit_fidelity",
+    "jspace_variance_explained",
     "evaluate",
     "metrics_to_rows",
 ]
@@ -168,6 +171,110 @@ def effective_dimension(lens: JacobianLens) -> dict[int, float]:
     return out
 
 
+@torch.no_grad()
+def logit_fidelity(
+    adapter: Adapter,
+    lens: JacobianLens,
+    batches,
+    layers: list[int] | None = None,
+) -> dict[int, dict[str, float]]:
+    """Per-layer faithfulness of the linear lens to the model's ACTUAL output.
+
+    The lens approximates the model's output by transporting a layer-``l`` residual
+    through ``J_l`` and decoding it; this measures how well that read-out matches the
+    model's true next-token distribution at each position:
+
+    - ``logit_kl``        — mean ``KL(model || lens)`` over the vocabulary (nats). 0 means
+      the lens reproduces the model's output distribution exactly; large values mean the
+      lens is telling a different story than the model.
+    - ``top1_agreement``  — fraction of positions where the lens's argmax token equals the
+      model's argmax token (exact match).
+
+    Both live in logit space on purpose: the decoded read-out is invariant to the overall
+    scale of ``J_l`` (the final norm removes it) and the lens drops the affine offset, so a
+    raw residual-space ``||J_l h - h_final||`` would look large even for a faithful lens.
+
+    Run this on HELD-OUT text (not the fit corpus) to catch a lens that is only faithful
+    near the operating point it was fit on. Returns ``{layer: {metric: value}}``.
+    """
+    layers = layers or lens.layers
+    kl_sum = {l: 0.0 for l in layers}
+    hits = {l: 0 for l in layers}
+    total = 0
+    for input_ids in batches:
+        cap = adapter.capture(input_ids, requires_grad=False)
+        model_logp = torch.log_softmax(cap.model_logits.float(), dim=-1)  # [b, s, vocab]
+        model_p = model_logp.exp()
+        model_top1 = model_logp.argmax(dim=-1)  # [b, s]
+        total += model_top1.numel()
+        for l in layers:
+            residual = cap.residuals[l].float()
+            J = lens.jacobians[l].to(residual.device, torch.float32)
+            transported = residual @ J.t()
+            lens_logp = torch.log_softmax(
+                adapter.to_logits(transported.to(adapter.dtype)).float(), dim=-1
+            )
+            kl = (model_p * (model_logp - lens_logp)).sum(dim=-1)  # [b, s]
+            kl_sum[l] += float(kl.sum().item())
+            hits[l] += int((lens_logp.argmax(dim=-1) == model_top1).sum().item())
+    return {
+        l: {
+            "logit_kl": (kl_sum[l] / total if total else 0.0),
+            "top1_agreement": (hits[l] / total if total else 0.0),
+        }
+        for l in layers
+    }
+
+
+@torch.no_grad()
+def jspace_variance_explained(
+    adapter: Adapter,
+    lens: JacobianLens,
+    batches,
+    layers: list[int] | None = None,
+    k: int = 16,
+    max_positions: int = 256,
+) -> dict[int, float]:
+    """Fraction of residual-stream variance captured by the top-``k`` J-space concepts.
+
+    For each sampled residual ``h`` at a layer, :func:`jlenskit.jspace.decompose`
+    reconstructs it from ``k`` non-negative *verbalizable* lens vectors; the fraction of
+    energy explained is ``1 - sum||h - recon||^2 / sum||h||^2`` aggregated over positions.
+    This is the toolkit's operationalization of the paper's "global workspace footprint"
+    — the fraction of activation variance that is verbalizable — which the paper reports
+    is modest (~10%) and concentrated in the middle block of the network.
+
+    ``max_positions`` caps the number of positions decomposed (matching pursuit runs per
+    position, so this dominates cost). Returns ``{layer: explained_fraction}`` in [0, 1].
+    """
+    layers = layers or lens.layers
+    res_energy = {l: 0.0 for l in layers}
+    tot_energy = {l: 0.0 for l in layers}
+    seen = 0
+    for input_ids in batches:
+        if seen >= max_positions:
+            break
+        cap = adapter.capture(input_ids, requires_grad=False)
+        take = min(
+            cap.residuals[layers[0]].reshape(-1, adapter.d_model).shape[0],
+            max_positions - seen,
+        )
+        for l in layers:
+            H = cap.residuals[l].reshape(-1, adapter.d_model)[:take].float()  # [take, D]
+            for j in range(take):
+                h = H[j]
+                h_energy = float(h @ h)  # ||h||^2
+                if h_energy <= 0:
+                    continue
+                d = decompose(adapter, lens, h, l, k=k)
+                res_energy[l] += (d.reconstruction_error**2) * h_energy
+                tot_energy[l] += h_energy
+        seen += take
+    return {
+        l: (1.0 - res_energy[l] / tot_energy[l]) if tot_energy[l] > 0 else 0.0 for l in layers
+    }
+
+
 def evaluate(
     adapter: Adapter,
     lens: JacobianLens,
@@ -176,15 +283,21 @@ def evaluate(
 ) -> dict[str, dict[int, float]]:
     """Run all lens metrics and return them keyed by metric name.
 
-    Returns ``{"topk_accuracy", "excess_kurtosis", "autocorrelation",
-    "effective_dimension"}``, each mapping layer index -> float.
+    Returns ``topk_accuracy``, ``excess_kurtosis``, ``autocorrelation``,
+    ``effective_dimension``, and the logit-space fidelity of the lens to the model
+    (``fidelity_logit_kl`` and ``fidelity_top1_agreement``), each mapping layer -> float.
+    (``jspace_variance_explained`` is not included by default — it is much costlier and is
+    most meaningful on held-out text; call it directly.)
     """
     batch_list = list(batches)
+    fid = logit_fidelity(adapter, lens, batch_list)
     return {
         "topk_accuracy": topk_accuracy(adapter, lens, batch_list, k=k),
         "excess_kurtosis": excess_kurtosis(adapter, lens, batch_list),
         "autocorrelation": autocorrelation(adapter, lens, batch_list),
         "effective_dimension": effective_dimension(lens),
+        "fidelity_logit_kl": {l: fid[l]["logit_kl"] for l in fid},
+        "fidelity_top1_agreement": {l: fid[l]["top1_agreement"] for l in fid},
     }
 
 

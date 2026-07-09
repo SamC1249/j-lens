@@ -24,6 +24,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `datasets`-backed corpus source.
 
 ### Added
+- `metrics.logit_fidelity` — per-layer, logit-space faithfulness of the lens to the
+  model's actual output (`KL(model || lens)` + exact top-1 agreement), for running on
+  held-out text to catch a lens that only works near its fit operating point. Now also
+  part of `evaluate` (`fidelity_logit_kl`, `fidelity_top1_agreement`).
+- `metrics.jspace_variance_explained` — fraction of residual-stream variance captured by
+  the top-k verbalizable J-space concepts per layer (the paper's "global workspace
+  footprint", reported ~10% and concentrated mid-network).
 - `jlenskit.logit_lens` — the classic logit-lens baseline, exposed as a first-class
   read-out with the same `LensResult` shape as the J-lens for direct comparison
   (the paper frames the J-lens as a principled refinement of the logit lens).

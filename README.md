@@ -93,7 +93,7 @@ runs/gpt2_demo/
 | Module | What it gives you |
 |---|---|
 | `jlenskit.core` | Fit / apply / decode the lens; save / load / **merge** (parallel fitting) |
-| `jlenskit.metrics` | top-k accuracy, excess kurtosis, autocorrelation, effective dimension — locate the "workspace" layers |
+| `jlenskit.metrics` | top-k accuracy, excess kurtosis, autocorrelation, effective dimension — locate the "workspace" layers; **logit-space fidelity** (KL + top-1 vs the model) and **J-space variance-explained** to quantify faithfulness and workspace footprint |
 | `jlenskit.jspace` | Sparse decomposition of an activation into lens vectors; causal `inject` / `swap` interventions |
 | `jlenskit.viz` | Layer × position slice/grid HTML viewer |
 | `jlenskit.store` | Lens cache (local + optional HF Hub), Parquet/JSON result store, run manifests |
