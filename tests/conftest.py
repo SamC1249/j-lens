@@ -2,8 +2,16 @@
 
 from __future__ import annotations
 
+import hashlib
+
 import pytest
 import torch
+
+
+def _stable_id(word: str, vocab_size: int) -> int:
+    """Deterministic word->id across processes (builtin hash() is salted per-process)."""
+    digest = hashlib.md5(word.encode("utf-8")).digest()
+    return (int.from_bytes(digest[:4], "big") % (vocab_size - 1)) + 1
 
 
 class StubTokenizer:
@@ -14,7 +22,7 @@ class StubTokenizer:
 
     def _tok(self, text: str) -> list[int]:
         words = text.split() or [text]
-        return [(abs(hash(w)) % (self.vocab_size - 1)) + 1 for w in words]
+        return [_stable_id(w, self.vocab_size) for w in words]
 
     def __call__(self, text, return_tensors=None, add_special_tokens=True):
         ids = self._tok(text)

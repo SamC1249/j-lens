@@ -36,6 +36,21 @@ def test_merge_equivalent_to_full_fit(toy_adapter):
     assert torch.allclose(merged.jacobians[0], full.jacobians[0], atol=1e-5)
 
 
+def test_merge_records_both_slice_provenance(toy_adapter):
+    """A merged lens must record BOTH corpus slices, not silently claim one."""
+    b1 = [torch.randint(1, 64, (2, 6)) for _ in range(2)]
+    b2 = [torch.randint(1, 64, (2, 6)) for _ in range(2)]
+    a = JacobianLens.fit(toy_adapter, b1, layers=[0, 1], chunk_size=8, corpus_spec={"tag": "a"})
+    b = JacobianLens.fit(toy_adapter, b2, layers=[0, 1], chunk_size=8, corpus_spec={"tag": "b"})
+    merged = a.merge(b)
+
+    provenance = merged.meta.extra["merged_from"]
+    assert [p["corpus_spec"]["tag"] for p in provenance] == ["a", "b"]
+    # merging must not mutate the operands' metadata
+    assert a.meta.extra.get("merged_from") is None
+    assert merged.meta.n_prompts == a.meta.n_prompts + b.meta.n_prompts
+
+
 def test_save_load_roundtrip(tmp_path, toy_lens):
     p = tmp_path / "lens.safetensors"
     toy_lens.save(p)

@@ -68,7 +68,7 @@ def load_corpus(spec: dict, tokenizer) -> list[torch.Tensor]:
             from datasets import load_dataset
         except ImportError as e:  # pragma: no cover
             raise ImportError(
-                "source='hf' requires the optional 'datasets' package: pip install datasets"
+                "source='hf' requires the optional 'datasets' package: pip install 'jlenskit[hf]'"
             ) from e
         ds = load_dataset(
             spec["name"], revision=spec.get("revision"), split=spec.get("split", "train"),

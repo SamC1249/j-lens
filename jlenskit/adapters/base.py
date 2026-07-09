@@ -119,10 +119,25 @@ class Adapter:
         )
 
     # -- residual -> logits ---------------------------------------------------
-    def to_logits(self, h: torch.Tensor, apply_softcap: bool = False) -> torch.Tensor:
-        """Map a (pre-final-norm) residual to vocabulary logits with the real modules."""
+    def to_logits(self, h: torch.Tensor, apply_softcap: bool = True) -> torch.Tensor:
+        """Map a (pre-final-norm) residual to vocabulary logits with the real modules.
+
+        The vocabulary projection is computed in float32 so bf16/fp16 rounding cannot
+        reorder near-tied top-k tokens (the model's own final norm still runs in its
+        native dtype, so the read-out stays faithful to what the model computes).
+
+        ``apply_softcap`` defaults to True so lens read-outs match the model's own
+        (softcapped) logits on architectures like Gemma 2; pass False for the raw
+        pre-softcap logits.
+        """
         normed = self.final_norm(h)
-        logits = self.unembed(normed)
+        weight = self.unembed.weight
+        bias = getattr(self.unembed, "bias", None)
+        logits = nn.functional.linear(
+            normed.to(torch.float32),
+            weight.to(torch.float32),
+            bias.to(torch.float32) if bias is not None else None,
+        )
         cap = self.spec.quirks.get("final_logit_softcapping")
         if apply_softcap and cap:
             logits = torch.tanh(logits / cap) * cap

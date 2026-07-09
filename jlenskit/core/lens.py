@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 from pathlib import Path
 
@@ -83,9 +84,19 @@ class JacobianLens:
         merged = {
             l: (self.jacobians[l] * wa + other.jacobians[l] * wb) / total for l in self.jacobians
         }
-        meta = LensMeta(**{**self.meta.__dict__})
+        # Deep-copy so we never mutate the operands' shared dicts, and record BOTH
+        # slices' provenance — otherwise the merged lens silently claims it was fit on
+        # only the left operand's corpus, breaking the manifest's reproducibility.
+        meta = copy.deepcopy(self.meta)
         meta.n_prompts = self.meta.n_prompts + other.meta.n_prompts
         meta.n_positions = wa + wb
+        meta.extra = {
+            **(self.meta.extra or {}),
+            "merged_from": [
+                {"corpus_spec": self.meta.corpus_spec, "n_positions": wa, "n_prompts": self.meta.n_prompts},
+                {"corpus_spec": other.meta.corpus_spec, "n_positions": wb, "n_prompts": other.meta.n_prompts},
+            ],
+        }
         return JacobianLens(merged, meta)
 
     # -- application ----------------------------------------------------------

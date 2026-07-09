@@ -2,15 +2,22 @@
 
 from __future__ import annotations
 
+import hashlib
+
 import torch
 
 from jlenskit.adapters.base import Adapter
 from jlenskit.adapters.spec import autodetect
 
 
+def _stable_id(word: str) -> int:
+    """Deterministic across processes (builtin hash() is salted per-process)."""
+    return (int.from_bytes(hashlib.md5(word.encode("utf-8")).digest()[:4], "big") % 63) + 1
+
+
 class StubTokenizer:
     def __call__(self, text, return_tensors=None, add_special_tokens=True):
-        ids = [(abs(hash(w)) % 63) + 1 for w in (text.split() or [text])]
+        ids = [_stable_id(w) for w in (text.split() or [text])]
         return {"input_ids": torch.tensor([ids]) if return_tensors == "pt" else ids}
 
     def decode(self, ids):
@@ -55,6 +62,28 @@ def test_to_logits_roundtrip_gpt2():
     cap = adapter.capture(ids, requires_grad=False)
     recon = adapter.to_logits(cap.final_residual)
     assert torch.allclose(recon, cap.model_logits, atol=1e-4)
+
+
+def test_to_logits_is_float32(toy_adapter):
+    """The vocabulary projection is computed in float32 regardless of model dtype so
+    bf16 rounding can't reorder near-tied top-k tokens."""
+    ids = torch.randint(1, 64, (1, 4))
+    cap = toy_adapter.capture(ids, requires_grad=False)
+    assert toy_adapter.to_logits(cap.final_residual).dtype == torch.float32
+
+
+def test_to_logits_applies_softcap(toy_adapter):
+    """Lens read-outs must match the model's own softcapped logits (e.g. Gemma 2)."""
+    toy_adapter.spec.quirks["final_logit_softcapping"] = 5.0
+    try:
+        ids = torch.randint(1, 64, (1, 4))
+        h = toy_adapter.capture(ids, requires_grad=False).final_residual
+        raw = toy_adapter.to_logits(h, apply_softcap=False)
+        capped = toy_adapter.to_logits(h, apply_softcap=True)  # default
+        assert torch.allclose(capped, torch.tanh(raw / 5.0) * 5.0)
+        assert not torch.allclose(raw, capped)
+    finally:
+        toy_adapter.spec.quirks.pop("final_logit_softcapping", None)
 
 
 def test_capture_residual_shapes(toy_adapter):

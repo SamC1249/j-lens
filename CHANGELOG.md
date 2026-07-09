@@ -6,6 +6,23 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- `Adapter.to_logits` now computes the vocabulary projection in float32, so bf16/fp16
+  rounding can no longer reorder near-tied top-k tokens in lens read-outs.
+- Lens read-outs now apply the model's `final_logit_softcapping` by default, matching
+  the model's own logits on architectures like Gemma 2 (previously the model's logits
+  were softcapped but the lens's were not, skewing comparisons and kurtosis).
+- `JacobianLens.merge` now records both source slices' corpus provenance in
+  `meta.extra["merged_from"]` and deep-copies metadata instead of silently claiming the
+  left operand's corpus and mutating shared dicts.
+- Removed a dead `/ (seq**0.0)` (always 1.0) factor in the `inject` intervention.
+- Test tokenizers now use a stable hash instead of the per-process-salted builtin
+  `hash()`, removing latent cross-process CI flakiness.
+
+### Changed
+- Declared a `hf` optional dependency extra (`pip install 'jlenskit[hf]'`) for the
+  `datasets`-backed corpus source.
+
 ### Added
 - `jlenskit.logit_lens` — the classic logit-lens baseline, exposed as a first-class
   read-out with the same `LensResult` shape as the J-lens for direct comparison

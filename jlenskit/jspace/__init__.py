@@ -167,7 +167,7 @@ def inject(
     def fn(hs):
         hs = hs.clone()
         scale = hs[0, pos].norm()
-        hs[0, pos] = hs[0, pos] + (strength * scale / (seq**0.0)) * un.to(hs.dtype)
+        hs[0, pos] = hs[0, pos] + (strength * scale) * un.to(hs.dtype)
         return hs
 
     with adapter.patch(layer, fn):
