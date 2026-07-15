@@ -4,5 +4,6 @@
 from __future__ import annotations
 
 from .logit import LogitLens, logit_lens
+from .tuned import TunedLens
 
-__all__ = ["LogitLens", "logit_lens"]
+__all__ = ["LogitLens", "logit_lens", "TunedLens"]
