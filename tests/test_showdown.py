@@ -1,6 +1,7 @@
 from jlenskit.baselines import TunedLens
 from jlenskit.config import ShowdownCfg
 from jlenskit.showdown import layers_to_coherence, run_showdown, write_showdown_outputs
+from jlenskit.viz import render_showdown
 
 
 def test_layers_to_coherence():
@@ -22,3 +23,13 @@ def test_run_showdown_and_write(tmp_path, toy_adapter, toy_lens, toy_batches):
     assert (tmp_path / "showdown_metrics.json").exists()
     assert (tmp_path / "showdown.md").exists()
     assert "logit" in (tmp_path / "showdown.md").read_text()
+
+
+def test_render_showdown_writes_html(tmp_path):
+    results = {"lenses": {
+        "logit": {"forward_kl": {0: 9.0, 1: 7.0, 2: 2.0}, "entropy": {}, "topk_accuracy": {2: 0.5}, "layers_to_coherence": 2},
+        "jacobian": {"forward_kl": {0: 4.0, 1: 2.0, 2: 1.0}, "entropy": {}, "topk_accuracy": {2: 0.6}, "layers_to_coherence": 1},
+    }, "elicitation": None}
+    p = render_showdown(results, tmp_path / "showdown.html")
+    html = p.read_text()
+    assert "<svg" in html and "logit" in html and "jacobian" in html
