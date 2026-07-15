@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import torch
 
-from jlenskit.baselines import logit_lens
+from jlenskit.baselines import LogitLens, logit_lens
 from jlenskit.core.lens import JacobianLens
 
 
@@ -47,3 +47,10 @@ def test_fit_deterministic_under_seed(toy_adapter, toy_batches):
     b = JacobianLens.fit(toy_adapter, toy_batches, layers=[0, 1, 2], chunk_size=8, seed=0)
     for l in a.layers:
         assert torch.allclose(a.jacobians[l], b.jacobians[l])
+
+
+def test_logitlens_transport_is_identity(toy_adapter):
+    lens = LogitLens(list(range(toy_adapter.n_layers)))
+    h = torch.randn(4, toy_adapter.d_model)
+    assert torch.equal(lens.transport(1, h), h)
+    assert lens.name == "logit"
