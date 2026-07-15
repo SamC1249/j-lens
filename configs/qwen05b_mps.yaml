@@ -37,3 +37,11 @@ eval:
 seed: 0
 output:
   dir: runs/qwen05b_mps
+
+showdown:
+  lenses: [logit, tuned, jacobian]
+  probes: core_v1
+  coherence_tau: 0.5
+  tuned_steps: 250
+  tuned_lr: 0.001
+  top_k: 5

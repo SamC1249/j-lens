@@ -9,8 +9,10 @@ from __future__ import annotations
 import json
 
 import yaml
+from typer.testing import CliRunner
 
 from jlenskit import cli
+from jlenskit.cli import app
 
 
 def _write_cfg(tmp_path, extra=None):
@@ -59,3 +61,10 @@ def test_cli_intervene(tmp_path, monkeypatch, toy_adapter):
     cli.intervene(str(cfg_path))
     manifest = json.loads((tmp_path / "run" / "manifest.json").read_text())
     assert manifest["command"] == "intervene"
+
+
+def test_showdown_command_registered():
+    runner = CliRunner()
+    result = runner.invoke(app, ["showdown", "--help"])
+    assert result.exit_code == 0
+    assert "showdown" in result.output.lower()
