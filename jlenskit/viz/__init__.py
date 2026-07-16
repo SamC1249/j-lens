@@ -21,8 +21,9 @@ import html
 from pathlib import Path
 
 from ..core.types import DecodedLayer, LensResult
+from .showdown import render_showdown
 
-__all__ = ["slice_html", "grid_html", "save_html", "render"]
+__all__ = ["slice_html", "grid_html", "save_html", "render", "render_showdown"]
 
 
 # -- helpers ------------------------------------------------------------------

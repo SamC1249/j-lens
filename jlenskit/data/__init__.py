@@ -18,6 +18,10 @@ from pathlib import Path
 
 import torch
 
+from .probes import Probe, load_probes
+
+__all__ = ["Probe", "load_probes", "pack_texts", "load_corpus", "random_corpus"]
+
 
 def pack_texts(texts: list[str], tokenizer, seq_len: int, n_sequences: int) -> list[torch.Tensor]:
     """Tokenize documents and pack them into fixed-length, unpadded sequences.

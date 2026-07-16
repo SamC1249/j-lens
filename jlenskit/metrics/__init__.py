@@ -33,6 +33,8 @@ __all__ = [
     "effective_dimension",
     "logit_fidelity",
     "jspace_variance_explained",
+    "forward_kl",
+    "entropy",
     "evaluate",
     "metrics_to_rows",
 ]
@@ -41,30 +43,29 @@ __all__ = [
 @torch.no_grad()
 def _lens_logits_for_batch(
     adapter: Adapter,
-    lens: JacobianLens,
+    lens,
     input_ids: torch.Tensor,
     layers: list[int],
 ) -> dict[int, torch.Tensor]:
     """Compute lens logits ``[b, s, vocab]`` for each layer of one batch.
 
-    Captures residuals without grad, transports each layer's residual through its
-    Jacobian, then maps to logits via the model's real final-norm + unembedding.
+    Captures residuals without grad, transports each layer's residual through the
+    lens's ``transport`` method, then maps to logits via the model's real final-norm
+    + unembedding. Works for any ``Lens`` implementation.
     """
     cap = adapter.capture(input_ids, requires_grad=False)
     out: dict[int, torch.Tensor] = {}
     for layer in layers:
         residual = cap.residuals[layer].float()  # [b, s, D]
-        J = lens.jacobians[layer].to(residual.device, torch.float32)  # [D, D]
-        transported = residual @ J.t()  # [b, s, D], final ~= J h
-        logits = adapter.to_logits(transported.to(adapter.dtype)).float()
-        out[layer] = logits  # [b, s, vocab]
+        transported = lens.transport(layer, residual)  # any Lens
+        out[layer] = adapter.to_logits(transported.to(adapter.dtype)).float()
     return out
 
 
 @torch.no_grad()
 def topk_accuracy(
     adapter: Adapter,
-    lens: JacobianLens,
+    lens,
     batches,
     k: int = 5,
 ) -> dict[int, float]:
@@ -273,6 +274,44 @@ def jspace_variance_explained(
     return {
         l: (1.0 - res_energy[l] / tot_energy[l]) if tot_energy[l] > 0 else 0.0 for l in layers
     }
+
+
+@torch.no_grad()
+def forward_kl(adapter, lens, batches, layers=None):
+    """Mean KL(model_final || lens_l) per layer (nats). Lower = more coherent."""
+    layers = layers or list(lens.layers)
+    kl_sum = {l: 0.0 for l in layers}
+    total = 0
+    for input_ids in batches:
+        cap = adapter.capture(input_ids, requires_grad=False)
+        model_logp = torch.log_softmax(cap.model_logits.float(), dim=-1)
+        model_p = model_logp.exp()
+        total += model_p.reshape(-1, adapter.vocab_size).shape[0]
+        for l in layers:
+            h = cap.residuals[l].float()
+            lens_logp = torch.log_softmax(
+                adapter.to_logits(lens.transport(l, h).to(adapter.dtype)).float(), dim=-1
+            )
+            kl = (model_p * (model_logp - lens_logp)).sum(dim=-1)  # [b, s]
+            kl_sum[l] += float(kl.sum().item())
+    return {l: (kl_sum[l] / total if total else 0.0) for l in layers}
+
+
+@torch.no_grad()
+def entropy(adapter, lens, batches, layers=None):
+    """Mean Shannon entropy (nats) of the lens distribution per layer."""
+    layers = layers or list(lens.layers)
+    ent_sum = {l: 0.0 for l in layers}
+    total = 0
+    for input_ids in batches:
+        logits = _lens_logits_for_batch(adapter, lens, input_ids, layers)
+        for l in layers:
+            logp = torch.log_softmax(logits[l], dim=-1)
+            ent = -(logp.exp() * logp).sum(dim=-1)  # [b, s]
+            ent_sum[l] += float(ent.sum().item())
+            n = ent.numel()
+        total += n
+    return {l: (ent_sum[l] / total if total else 0.0) for l in layers}
 
 
 def evaluate(

@@ -64,6 +64,37 @@ New to the tool? **[`examples/quickstart.ipynb`](examples/quickstart.ipynb)** wa
 fit → apply → logit-lens comparison → visualize, and runs in a few minutes on CPU
 (click the Colab badge above).
 
+### Lens showdown
+
+Compare all three read-out lenses on one model in a single command:
+
+```bash
+jlenskit showdown configs/gpt2_demo.yaml
+```
+
+| Lens | Transport | Requires training |
+|---|---|---|
+| **logit** | identity (unembed directly) | no |
+| **tuned** | learned affine per layer | yes (short, on-device) |
+| **J-lens** | Jacobian (input→output) transport | no |
+
+The showdown evaluates each lens with three **coherence metrics** over a held-out corpus:
+
+- `forward_kl` — KL divergence from the model's own output distribution per layer (lower = more faithful)
+- `entropy` — Shannon entropy (nats) of the lens distribution per layer (lower = more decisive)
+- `layers-to-coherence` — the earliest layer where `forward_kl` drops below the configured `coherence_tau` threshold (shallower = knowledge surfaces earlier)
+
+It also runs a **knowledge-probe suite** (`jlenskit.data.load_probes`) to find the *elicitation depth* — the first layer at which each factual probe answer appears in the top-k read-out.
+
+Outputs land alongside the run's other files:
+
+```
+runs/gpt2_demo/
+├── showdown_metrics.json   # full per-lens, per-layer metric tables
+├── showdown.md             # human-readable summary table
+└── showdown.html           # interactive layer × lens viewer
+```
+
 ## Quickstart (CLI)
 
 Everything is driven by a YAML config (recorded in each run's manifest for reproducibility):

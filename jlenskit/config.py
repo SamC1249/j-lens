@@ -75,6 +75,15 @@ class OutputCfg(BaseModel):
     dir: str = "runs/run"
 
 
+class ShowdownCfg(BaseModel):
+    lenses: list[str] = Field(default_factory=lambda: ["logit", "tuned", "jacobian"])
+    probes: str | None = "core_v1"
+    coherence_tau: float = 0.5
+    tuned_steps: int = 250
+    tuned_lr: float = 1e-3
+    top_k: int = 5
+
+
 class Config(BaseModel):
     model: ModelCfg
     corpus: CorpusCfg = Field(default_factory=CorpusCfg)
@@ -83,6 +92,7 @@ class Config(BaseModel):
     apply: ApplyCfg = Field(default_factory=ApplyCfg)
     eval: EvalCfg = Field(default_factory=EvalCfg)
     intervene: InterveneCfg | None = None
+    showdown: ShowdownCfg | None = None
     seed: int | None = 0
     output: OutputCfg = Field(default_factory=OutputCfg)
 

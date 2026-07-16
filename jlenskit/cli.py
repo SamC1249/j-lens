@@ -17,11 +17,13 @@ from pathlib import Path
 import typer
 
 from . import jspace
-from .config import Config, load_config
+from .baselines import TunedLens
+from .config import Config, ShowdownCfg, load_config
 from .core.lens import JacobianLens
 from .data import load_corpus
 from .metrics import evaluate, metrics_to_rows
 from .models import load
+from .showdown import run_showdown, write_showdown_outputs
 from .store import (
     LensCache,
     build_manifest,
@@ -29,7 +31,7 @@ from .store import (
     save_result,
     write_manifest,
 )
-from .viz import render
+from .viz import render, render_showdown
 
 app = typer.Typer(add_completion=False, help="Run the Jacobian lens (J-lens) on models.")
 
@@ -167,6 +169,51 @@ def intervene(config: str):
     _finish(cfg, adapter, lens, "intervene", {"description": res.description,
                                               "baseline_top": res.baseline_top,
                                               "intervened_top": res.intervened_top})
+
+
+@app.command()
+def showdown(config: str):
+    """Compare logit / tuned / Jacobian lenses on coherence + knowledge elicitation."""
+    cfg = load_config(config)
+    sc = cfg.showdown or ShowdownCfg()
+    adapter = _adapter(cfg)
+    jlens = _resolve_lens(cfg, adapter)
+    batches = load_corpus(cfg.corpus.to_spec(), adapter.tokenizer)
+
+    # Resolve tuned lens via file-based caching in the output dir.
+    # LensCache.get() hardcodes JacobianLens.load(), so it cannot round-trip a
+    # TunedLens checkpoint.  We therefore skip LensCache for TunedLens and use a
+    # plain safetensors file (<output_dir>/tuned_lens.safetensors) instead:
+    # load from file if present, otherwise train and save.
+    tuned = None
+    if "tuned" in sc.lenses:
+        out_dir = Path(cfg.output.dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        tuned_path = out_dir / "tuned_lens.safetensors"
+        if tuned_path.exists():
+            typer.echo(f"[jlenskit] loading cached tuned lens from {tuned_path}")
+            tuned = TunedLens.load(tuned_path)
+        else:
+            typer.echo(f"[jlenskit] training tuned lens ({sc.tuned_steps} steps) ...")
+            tuned = TunedLens.fit(
+                adapter,
+                batches,
+                layers=jlens.layers,
+                n_steps=sc.tuned_steps,
+                lr=sc.tuned_lr,
+                seed=cfg.seed,
+                corpus_spec=cfg.corpus.to_spec(),
+                progress=True,
+            )
+            tuned.save(tuned_path)
+
+    results = run_showdown(sc, adapter, jlens, batches, tuned=tuned)
+    out_dir = Path(cfg.output.dir)
+    outputs = write_showdown_outputs(results, out_dir)
+    outputs["showdown_html"] = str(render_showdown(results, out_dir / "showdown.html"))
+    for name, m in results["lenses"].items():
+        typer.echo(f"[jlenskit] {name}: layers-to-coherence = {m['layers_to_coherence']}")
+    _finish(cfg, adapter, jlens, "showdown", outputs)
 
 
 if __name__ == "__main__":

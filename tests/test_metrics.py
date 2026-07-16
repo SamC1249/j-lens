@@ -4,11 +4,16 @@ from __future__ import annotations
 
 import math
 
+import torch
+
+from jlenskit.baselines import LogitLens
 from jlenskit.metrics import (
     autocorrelation,
     effective_dimension,
+    entropy,
     evaluate,
     excess_kurtosis,
+    forward_kl,
     jspace_variance_explained,
     logit_fidelity,
     metrics_to_rows,
@@ -109,3 +114,16 @@ def test_metrics_to_rows(toy_adapter, toy_lens, toy_batches):
         assert isinstance(row["metric"], str)
         assert isinstance(row["layer"], int)
         assert _is_finite_float(row["value"])
+
+
+def test_forward_kl_nonnegative_and_shaped(toy_adapter, toy_lens):
+    kl = forward_kl(toy_adapter, toy_lens, [torch.randint(1, 64, (2, 8))])
+    assert set(kl) == set(toy_lens.layers)
+    assert all(v >= -1e-5 for v in kl.values())
+
+
+def test_entropy_matches_logit_lens_manual(toy_adapter):
+    lens = LogitLens(list(range(toy_adapter.n_layers)))
+    ent = entropy(toy_adapter, lens, [torch.randint(1, 64, (1, 4))])
+    assert set(ent) == set(lens.layers)
+    assert all(v >= 0 for v in ent.values())

@@ -11,13 +11,16 @@ from safetensors.torch import load_file, save_file
 
 from ..adapters.base import Adapter
 from .jacobian import compute_layer_jacobians
-from .types import DecodedLayer, LensMeta, LensResult
+from .lens_base import apply_lens, decode_result
+from .types import LensMeta, LensResult
 
 _VERSION = "0.1.0"
 
 
 class JacobianLens:
     """A fitted Jacobian lens: one transport matrix ``J_l`` per layer."""
+
+    name = "jacobian"
 
     def __init__(self, jacobians: dict[int, torch.Tensor], meta: LensMeta):
         self.jacobians = jacobians
@@ -26,6 +29,10 @@ class JacobianLens:
     @property
     def layers(self) -> list[int]:
         return sorted(self.jacobians)
+
+    def transport(self, layer: int, h: torch.Tensor) -> torch.Tensor:
+        J = self.jacobians[layer].to(h.device, torch.float32)
+        return h.to(torch.float32) @ J.t()
 
     # -- fitting --------------------------------------------------------------
     @classmethod
@@ -111,52 +118,11 @@ class JacobianLens:
         decode: bool = True,
     ) -> LensResult:
         """Apply the lens to ``prompt`` at the given ``positions`` (defaults to last token)."""
-        input_ids = adapter.encode(prompt)
-        seq = input_ids.shape[1]
-        if positions is None:
-            positions = [-1]
-        pos = [p % seq for p in positions]
-        layers = layers or self.layers
-
-        cap = adapter.capture(input_ids, requires_grad=False)
-
-        lens_logits: dict[int, torch.Tensor] = {}
-        for l in layers:
-            h = cap.residuals[l][0, pos].to(torch.float32)  # [n_pos, D]
-            J = self.jacobians[l].to(h.device, torch.float32)
-            transported = (h @ J.t()).to(adapter.dtype)  # final ~= J h
-            lens_logits[l] = adapter.to_logits(transported).to(torch.float32)
-
-        model_logits = cap.model_logits[0, pos].to(torch.float32)
-
-        result = LensResult(
-            prompt=prompt,
-            positions=pos,
-            lens_logits=lens_logits,
-            model_logits=model_logits,
-        )
-        if decode:
-            result.decoded = self._decode(adapter, result, top_k)
-        return result
+        return apply_lens(self, adapter, prompt, positions=positions,
+                          layers=layers or self.layers, top_k=top_k, decode=decode)
 
     def _decode(self, adapter: Adapter, result: LensResult, top_k: int) -> dict:
-        decoded: dict[int, list[DecodedLayer]] = {}
-        for pi, _p in enumerate(result.positions):
-            per_layer = []
-            for l in sorted(result.lens_logits):
-                probs = torch.softmax(result.lens_logits[l][pi], dim=-1)
-                top = probs.topk(top_k)
-                ids = top.indices.tolist()
-                per_layer.append(
-                    DecodedLayer(
-                        layer=l,
-                        token_ids=ids,
-                        tokens=adapter.decode_tokens(ids),
-                        scores=top.values.tolist(),
-                    )
-                )
-            decoded[pi] = per_layer
-        return decoded
+        return decode_result(adapter, result, top_k)
 
     # -- persistence ----------------------------------------------------------
     def save(self, path: str | Path) -> Path:
