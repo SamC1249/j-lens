@@ -11,11 +11,11 @@ from .data.probes import elicitation_depth
 from .metrics import entropy, forward_kl, topk_accuracy
 
 
-def layers_to_coherence(kl: dict[int, float], tau: float) -> int | None:
+def layers_to_coherence(kl: dict[int, float], threshold: float) -> int | None:
+    """Smallest layer L such that kl[m] <= threshold for all m >= L; None if never."""
     if not kl:
         return None
     layers = sorted(kl)
-    threshold = tau * kl[layers[0]]
     for i, l in enumerate(layers):
         if all(kl[m] <= threshold for m in layers[i:]):
             return l
@@ -32,14 +32,21 @@ def run_showdown(cfg, adapter, jlens, batches, tuned=None) -> dict:
     if "jacobian" in cfg.lenses:
         lens_objs["jacobian"] = jlens
 
-    out = {"lenses": {}, "elicitation": None}
+    # Compute forward_kl for all lenses first so we can derive a shared threshold.
+    all_kls = {name: forward_kl(adapter, lens, batches) for name, lens in lens_objs.items()}
+
+    # Shared, cross-lens-comparable coherence threshold: tau * the worst lens's layer-0 KL.
+    l0_vals = [kl[min(kl)] for kl in all_kls.values() if kl]
+    shared_threshold = cfg.coherence_tau * max(l0_vals) if l0_vals else 0.0
+
+    out = {"lenses": {}, "elicitation": None, "coherence_threshold": shared_threshold}
     for name, lens in lens_objs.items():
-        kl = forward_kl(adapter, lens, batches)
+        kl = all_kls[name]
         out["lenses"][name] = {
             "forward_kl": kl,
             "entropy": entropy(adapter, lens, batches),
             "topk_accuracy": topk_accuracy(adapter, lens, batches, k=cfg.top_k),
-            "layers_to_coherence": layers_to_coherence(kl, cfg.coherence_tau),
+            "layers_to_coherence": layers_to_coherence(kl, shared_threshold),
         }
 
     if cfg.probes:

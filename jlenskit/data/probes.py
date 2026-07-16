@@ -33,11 +33,11 @@ def elicitation_depth(adapter, lens, probes: list[Probe], top_k: int = 5) -> dic
     by_cat: dict[str, list[int]] = {}
     for p in probes:
         res = apply_lens(lens, adapter, p.prompt, positions=[-1], top_k=top_k)
-        wanted = [a.strip().lower() for a in p.answers]
+        wanted = {a.strip().lower() for a in p.answers}
         depth = None
         for dl in res.decoded[0]:  # ordered by layer
-            toks = [t.strip().lower() for t in dl.tokens]
-            if any(any(w in t or t in w for t in toks) for w in wanted):
+            toks = {t.strip().lower() for t in dl.tokens}
+            if toks & wanted:          # exact-match intersection
                 depth = dl.layer
                 break
         per_probe.append({"prompt": p.prompt, "category": p.category, "depth": depth})

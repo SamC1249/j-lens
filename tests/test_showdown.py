@@ -6,9 +6,9 @@ from jlenskit.viz import render_showdown
 
 def test_layers_to_coherence():
     kl = {0: 10.0, 1: 8.0, 2: 3.0, 3: 2.0}
-    # tau=0.5 -> threshold = 5.0; first layer with kl<=5 that stays below = 2
-    assert layers_to_coherence(kl, 0.5) == 2
-    assert layers_to_coherence({0: 10.0, 1: 9.0}, 0.5) is None
+    assert layers_to_coherence(kl, 5.0) == 2      # threshold 5.0 absolute: L2 onward <=5
+    assert layers_to_coherence(kl, 1.0) is None    # nothing <=1
+    assert layers_to_coherence({0: 10.0, 1: 9.0}, 5.0) is None
 
 
 def test_run_showdown_and_write(tmp_path, toy_adapter, toy_lens, toy_batches):
