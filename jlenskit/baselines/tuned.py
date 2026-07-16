@@ -32,7 +32,7 @@ class TunedLens:
 
     @classmethod
     def fit(cls, adapter, batches, layers=None, n_steps=250, lr=1e-3, seed=None,
-            corpus_spec=None, progress=False):
+            corpus_spec=None, progress=False, minibatch=512):
         if seed is not None:
             torch.manual_seed(seed)
         if layers is None:
@@ -40,48 +40,62 @@ class TunedLens:
         d = adapter.d_model
         device = adapter.device
 
-        # Cache residuals + model target log-probs once (no grad through the model).
-        cached = []  # list of (residuals: {l: [P, D]}, target_logp: [P, vocab])
+        # Cache residuals per layer + the model's final log-probs (shared across layers,
+        # since the target is the model's own output). No grad flows through the model.
+        res_by_layer = {l: [] for l in layers}
+        target_chunks = []
         with torch.no_grad():
             for input_ids in batches:
                 cap = adapter.capture(input_ids, requires_grad=False)
-                target = torch.log_softmax(cap.model_logits.float(), dim=-1).reshape(-1, adapter.vocab_size)
-                res = {l: cap.residuals[l].float().reshape(-1, d) for l in layers}
-                cached.append((res, target))
-
-        A = {l: torch.zeros(d, d, device=device, requires_grad=True) for l in layers}
-        b = {l: torch.zeros(d, device=device, requires_grad=True) for l in layers}
-        params = [A[l] for l in layers] + [b[l] for l in layers]
-        opt = torch.optim.Adam(params, lr=lr)
-
-        for step in range(n_steps):
-            opt.zero_grad()
-            loss = torch.zeros((), device=device)
-            for res, target in cached:
-                target_p = target.exp()
+                target_chunks.append(
+                    torch.log_softmax(cap.model_logits.float(), dim=-1).reshape(-1, adapter.vocab_size)
+                )
                 for l in layers:
-                    h = res[l].to(device)
-                    transported = h + h @ A[l].t() + b[l]
-                    lens_logp = torch.log_softmax(
-                        adapter.to_logits(transported.to(adapter.dtype)).float(), dim=-1
-                    )
-                    # forward KL(model || lens), summed over vocab, mean over positions
-                    loss = loss + (target_p * (target - lens_logp)).sum(dim=-1).mean()
-            loss.backward()
-            opt.step()
-            if progress and step % 50 == 0:
-                print(f"[tuned] step {step} loss {float(loss):.4f}")
+                    res_by_layer[l].append(cap.residuals[l].float().reshape(-1, d))
+        target = torch.cat(target_chunks, dim=0).to(device)            # [P, vocab]
+        target_p = target.exp()
+        H = {l: torch.cat(res_by_layer[l], dim=0).to(device) for l in layers}  # [P, D]
+        P = target.shape[0]
+
+        # Train each layer's affine translator independently (objective is separable per
+        # layer), minibatching positions so the retained vocab-space graph stays bounded.
+        A, b = {}, {}
+        for l in layers:
+            A_l = torch.zeros(d, d, device=device, requires_grad=True)
+            b_l = torch.zeros(d, device=device, requires_grad=True)
+            opt = torch.optim.Adam([A_l, b_l], lr=lr)
+            gen = torch.Generator()
+            if seed is not None:
+                gen.manual_seed(seed + l)
+            for step in range(n_steps):
+                if minibatch and P > minibatch:
+                    idx = torch.randint(0, P, (minibatch,), generator=gen).to(device)
+                    h, tp, tlp = H[l][idx], target_p[idx], target[idx]
+                else:
+                    h, tp, tlp = H[l], target_p, target
+                opt.zero_grad()
+                transported = h + h @ A_l.t() + b_l
+                lens_logp = torch.log_softmax(
+                    adapter.to_logits(transported.to(adapter.dtype)).float(), dim=-1
+                )
+                loss = (tp * (tlp - lens_logp)).sum(dim=-1).mean()  # forward KL(model || lens)
+                loss.backward()
+                opt.step()
+                if progress and step % 50 == 0:
+                    print(f"[tuned] layer {l} step {step} loss {loss.item():.4f}")
+            A[l] = A_l.detach().cpu()
+            b[l] = b_l.detach().cpu()
 
         meta = LensMeta(
             model_id=getattr(adapter.model.config, "_name_or_path", "unknown"),
             model_revision=None, d_model=d, vocab_size=adapter.vocab_size,
             n_layers=adapter.n_layers, layers_fit=sorted(layers),
-            n_prompts=len(cached), n_positions=sum(t.shape[0] for _, t in cached),
-            corpus_spec=corpus_spec or {}, fit_config={"n_steps": n_steps, "lr": lr},
+            n_prompts=len(target_chunks), n_positions=P,
+            corpus_spec=corpus_spec or {},
+            fit_config={"n_steps": n_steps, "lr": lr, "minibatch": minibatch},
             seed=seed, jlenskit_version="0.1.0", extra={"lens_type": "tuned"},
         )
-        return cls({l: A[l].detach().cpu() for l in layers},
-                   {l: b[l].detach().cpu() for l in layers}, meta)
+        return cls(A, b, meta)
 
     def transport(self, layer: int, h: torch.Tensor) -> torch.Tensor:
         A = self.A[layer].to(h.device, torch.float32)
