@@ -6,8 +6,6 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-07-15
-
 ### Added
 - `jlenskit.baselines.TunedLens` — learned affine read-out (one weight + bias per layer),
   trained on-device with a short cross-entropy pass; implements the same `Lens` protocol as
